@@ -8,6 +8,8 @@ import csv
 from sklearn.cross_validation import train_test_split
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.cross_validation import cross_val_score
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.pipeline import Pipeline
 from matplotlib import pyplot as plt
 
 data_filename = 'ionosphere.data'
@@ -42,7 +44,7 @@ for n_neighbors in parameter_values:
     all_scores.append(scores)
 plt.figure(figsize=(32,20))
 plt.plot(parameter_values, avg_scores, '-o', linewidth=5, markersize=24)
-plt.show()
+#plt.show()
 
 X_broken = np.array(X)
 X_broken[:,::2] /= 10
@@ -51,3 +53,13 @@ original_scores = cross_val_score(estimator, X, y, scoring='accuracy')
 print("The original average accuracy for is {0:.1f}%".format(np.mean(original_scores) * 100))
 broken_scores = cross_val_score(estimator, X_broken, y, scoring='accuracy')
 print("The 'broken' average accuracy for is {0:.1f}%".format(np.mean(broken_scores) * 100))
+
+X_transformed = MinMaxScaler().fit_transform(X_broken)
+estimator = KNeighborsClassifier()
+transformed_scores = cross_val_score(estimator, X_transformed, y, scoring='accuracy')
+print("Tht average accuracy for is {0:.1f}%".format(np.mean(transformed_scores) * 100))
+
+scaling_pipeline = Pipeline([('scale', MinMaxScaler()),
+                             ('predict', KNeighborsClassifier())])
+scores = cross_val_score(scaling_pipeline, X_broken, y, scoring='accuracy')
+print("The pipeline scored an average accuracy for is {0:.1f}%".format(np.mean(transformed_scores) * 100))
