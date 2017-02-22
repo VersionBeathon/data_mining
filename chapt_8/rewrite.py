@@ -17,6 +17,10 @@ from pybrain.tools.shortcuts import buildNetwork
 from pybrain.supervised.trainers import BackpropTrainer
 from sklearn.metrics import f1_score
 from sklearn.metrics import classification_report
+from nltk.corpus import words
+from sklearn.metrics import confusion_matrix
+from nltk.metrics import edit_distance
+from operator import itemgetter
 
 
 def create_captcha(text, shear=0, size=(100, 25)):
@@ -105,3 +109,55 @@ word = "GENE"
 captcha = create_captcha(word, shear=0.2)
 print(predict_captcha(captcha, net))
 
+
+def test_prediction(word, net, shear=0.2):
+    captcha = create_captcha(word, shear=shear)
+    prediction = predict_captcha(captcha, net)
+    prediction = predictions[:4]
+    return word == prediction, word, prediction
+
+valid_words = [word.upper() for word in words.words() if len(word) == 4]
+num_correct = 0
+num_incorrect = 0
+for word in valid_words:
+    correct, word, prediction = test_prediction(word, net, shear=0.2)
+    if correct:
+        num_correct += 1
+    else:
+        num_incorrect += 1
+print("Number correct is {0}".format(num_correct))
+print("Number incorrect is {0}".format(num_incorrect))
+
+cm = confusion_matrix(np.argmax(y_test, axis=1), predictions)
+
+plt.figure(figsize=(10, 10))
+plt.imshow(cm, cmap='Blues')
+plt.show()
+
+steps = edit_distance("STEP", "STOP")
+print("The number of steps needed is: {0}".format(steps))
+
+
+def compute_distance(prediction, word):
+    return len(prediction) - sum(prediction[i] == word[i] for i in range(len(prediction)))
+
+
+def improved_prediction(word, net, dictionary, shear=0.2):
+    captcha = create_captcha(word, shear=shear)
+    prediction = predict_captcha(captcha, net)
+    prediction = prediction[:4]
+    if prediction not in dictionary:
+        distances = sorted([(word, compute_distance(prediction, word)) for word in dictionary], key=itemgetter(1))
+        best_word = distances[0]
+        prediction = best_word[0]
+    return word == prediction, word, prediction
+num_correct = 0
+num_incorrect = 0
+for word in valid_words:
+    correct, word, prediction = improved_prediction (word, net, valid_words, shear=0.2)
+    if correct:
+        num_correct += 1
+    else:
+        num_incorrect += 1
+print("Number correct is {0}".format(num_correct))
+print("Number incorrect is {0}".format(num_incorrect))
