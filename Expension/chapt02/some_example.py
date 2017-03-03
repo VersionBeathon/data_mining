@@ -21,10 +21,10 @@ print(time_zones[:10])
 
 
 def get_counts(sequence):
-    counts = defaultdict(int)
+    _counts = defaultdict(int)
     for x in sequence:
-            counts[x] += 1
-    return counts
+            _counts[x] += 1
+    return _counts
 
 counts = get_counts(time_zones)
 pprint(counts)
@@ -70,3 +70,44 @@ plt.show()
 normed_subset = count_subset.div(count_subset.sum(1), axis=0)
 normed_subset.plot(kind='barh', stacked=True)
 plt.show()
+
+# 影评数据
+user_path = r'H:\learning\pydata-book\ch02\movielens\users.dat'
+rate_path = r'H:\learning\pydata-book\ch02\movielens\ratings.dat'
+movie_path = r'H:\learning\pydata-book\ch02\movielens\movies.dat'
+unames = ['user_id', 'gender', 'age', 'occupations', 'zip']
+users = pd.read_table(user_path, sep='::', header=None, names=unames)
+rnames = ['user_id', 'movie_id', 'rating', 'timestamp']
+ratings = pd.read_table(rate_path, sep='::', header=None, names=rnames)
+mnames = ['movie_id', 'title', 'genres']
+movies = pd.read_table(movie_path, sep='::', header=None, names=mnames)
+print(users[:5])
+print(ratings[:5])
+print(movies[:5])
+
+# 合并操作
+data = pd.merge(pd.merge(ratings, users), movies)
+print(data.ix[0])
+
+# 按性别计算每部电影平均得分
+mean_ratings = data.pivot_table('rating', index='title', columns='gender', aggfunc='mean')
+print(mean_ratings[:5])
+print("================================")
+
+# 过滤掉评分数据不够250条的电影
+# 对title 进行分组，利用size得到一个含有各电影分组大小的Series
+ratings_by_title = data.groupby('title').size()
+print(ratings_by_title[:10])
+active_titles = ratings_by_title.index[ratings_by_title >= 250]
+print(active_titles)
+mean_ratings = mean_ratings.ix[active_titles]
+print(mean_ratings)
+
+# 了解女性观众最喜欢的电影
+top_female_ratings = mean_ratings.sort_values(by='F', ascending=False)
+print(top_female_ratings[:10])
+
+# 计算男女分歧
+mean_ratings['diff'] = mean_ratings["M"] - mean_ratings["F"]
+sorted_by_diff = mean_ratings.sort_values(by='diff')
+print(sorted_by_diff[:15])
