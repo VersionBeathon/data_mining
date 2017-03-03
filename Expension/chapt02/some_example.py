@@ -111,3 +111,52 @@ print(top_female_ratings[:10])
 mean_ratings['diff'] = mean_ratings["M"] - mean_ratings["F"]
 sorted_by_diff = mean_ratings.sort_values(by='diff')
 print(sorted_by_diff[:15])
+# 反序
+print(sorted_by_diff[::-1][:15])
+
+# 根据电影名称分组的得分数据的标准差
+rating_std_by_title = data.groupby('title')['rating'].std()
+# 根据active_titles进行过滤
+rating_std_by_title = ratings_by_title.ix[active_titles]
+print(rating_std_by_title.sort_values(ascending=False)[:10])
+
+# 全美婴儿姓名数据
+filename = r'H:\learning\pydata-book\ch02\names\yob1880.txt'
+names1880 = pd.read_csv(filename, names=['name', 'sex', 'births'])
+print(names1880)
+print('===================')
+
+# 使用birth列sex分组统计当年出生情况
+print(names1880.groupby('sex').births.sum())
+
+# 将1880~2010年数据统计到一个DataFrame里面并加上year字段
+years = range(1880, 2011)
+pieces = []
+columns = ['name', 'sex', 'births']
+
+for year in years:
+    path = r'H:\learning\pydata-book\ch02\names\yob{0}.txt'.format(str(year))
+    frame = pd.read_csv(path, names=columns)
+    frame['year'] = year
+    pieces.append(frame)
+# 将所有数据整合到单个DataFrame中，ignore_index 不保留原始行号
+names = pd.concat(pieces, ignore_index=True)
+print(names)
+# 对数据进行聚合
+total_births = names.pivot_table('births', index='year', columns='sex', aggfunc=sum)
+print(total_births.tail())
+print(names.groupby('sex').births.sum())
+total_births.plot(title='Total births by sex and year')
+plt.show()
+
+
+# 指定名字的婴儿数相对于总出生数的比例
+def add_prop(group):
+    births = group.births.astype(float)
+    group['prop'] = births / births.sum()
+    return group
+names = names.groupby(['year', 'sex']).apply(add_prop)
+print(names)
+
+# 验证所有分组的prop和是否为1
+print(np.allclose(names.groupby(['year', 'sex']).prop.sum(), 1))
