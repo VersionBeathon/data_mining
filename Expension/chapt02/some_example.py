@@ -160,3 +160,87 @@ print(names)
 
 # 验证所有分组的prop和是否为1
 print(np.allclose(names.groupby(['year', 'sex']).prop.sum(), 1))
+
+
+# 每对sex/year组合的前1000个名字进行分组
+def get_top1000(group):
+    return group.sort_values(by='births', ascending=False)[:1000]
+grouped = names.groupby(['year', 'sex'])
+top1000 = grouped.apply(get_top1000)
+print(top1000[:1000])
+
+# 分成男女两个数据集
+boys  = top1000[top1000.sex == "M"]
+girls = top1000[top1000.sex == "F"]
+
+# 生成按year和name统计的总出生数透视表
+total_births = top1000.pivot_table('births', index='year', columns='name', aggfunc=sum)
+
+subset = total_births[['John', 'Harry', 'Mary', 'Marilyn']]
+subset.plot(subplots=True, figsize=(12, 10), grid=False, title="Number of births per year")
+plt.show()
+
+# 按year和sex进行聚合并绘图
+table = top1000.pivot_table('prop', index='year', columns='sex', aggfunc=sum)
+table.plot(title='Sum of table 1000.prop by year and sex', yticks=np.linspace(0, 1.2, 13), xticks=range(1880, 2020, 10))
+plt.show()
+
+# 只考虑2010年男孩的名字
+df = boys[boys.year == 2010]
+print(df)
+
+# 通过prop的累计和cumsum，通过searchsorted找出累加到0.5的人数
+prop_cumsum = df.sort_values(by='prop', ascending=False).prop.cumsum()
+print(prop_cumsum[:10])
+print(prop_cumsum.searchsorted(0.5) + 1)
+
+df = boys[boys.year == 1900]
+in1900 = df.sort_values(by='prop', ascending=False).prop.cumsum()
+print(in1900.searchsorted(0.5) + 1)
+
+
+def get_quantitle_count(group, q=0.5):
+    group = group.sort_values(by='prop', ascending=False)
+    return group.prop.cumsum().searchsorted(q) + 1
+diversity = top1000.groupby(['year', 'sex']).apply(get_quantitle_count)
+diversity = diversity.unstack('sex')
+print(diversity.head())
+
+# 从names列取出最后一个字母
+get_last_letter = lambda  x: x[-1]
+last_letters = names.name.map(get_last_letter)
+last_letters.name = 'last_letter'
+table = names.pivot_table('births', index=last_letters, columns=['sex', 'year'], aggfunc=sum)
+subtable = table.reindex(columns=[1910, 1960, 2010], level='year')
+print(subtable.head())
+
+# 计算各性别各末字母占总出生人数的比例
+print(subtable.sum())
+letter_prop = subtable / subtable.sum().astype(float)
+fig, axes = plt.subplots(2, 1, figsize=(10, 8))
+letter_prop['M'].plot(kind='bar', rot=0, ax=axes[0], title="Male")
+letter_prop['F'].plot(kind='bar', rot=0, ax=axes[1], title='Female', legend=False)
+plt.show()
+
+
+# 绘制名字趋势图
+letter_prop = table / table.sum().astype(float)
+dny_ts = letter_prop.ix[['d', 'n', 'y'],'M'].T
+print(dny_ts.head())
+dny_ts.plot()
+plt.show()
+
+# 变成女孩名字的男孩名字（以及相反的情况）
+all_names = top1000.name.unique()
+mask = np.array(['lesl' in x.lower() for x in all_names])
+lesley_like = all_names[mask]
+print(lesley_like)
+# 利用这个结果过滤其他的名字，并按名字分组计算出生数以查看相对频率
+filtered = top1000[top1000.name.isin(lesley_like)]
+print(filtered.groupby('name').births.sum())
+# 按性别和年度进行聚合，并按年度进行规范化处理
+table = filtered.pivot_table('births', index='year', columns='sex', aggfunc=sum)
+table = table.div(table.sum(1), axis=0)
+print(table.tail())
+table.plot(style={'M': 'k-', 'F': 'k--'})
+plt.show()
