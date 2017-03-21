@@ -12,12 +12,12 @@ from matplotlib import pyplot as plt
 import pandas as pd
 import numpy as np
 path = r'H:\learning\pydata-book\ch02\usagov_bitly_data2012-03-16-1331923249.txt'
-print(open(path).readline())
+#print(open(path).readline())
 records = [json.loads(line) for line in open(path)]
-print(records[0])
-print(records[0]['tz'])
+#print(records[0])
+#print(records[0]['tz'])
 time_zones = [rec['tz'] for rec in records if 'tz' in rec]
-print(time_zones[:10])
+#print(time_zones[:10])
 
 
 def get_counts(sequence):
@@ -27,18 +27,17 @@ def get_counts(sequence):
     return _counts
 
 counts = get_counts(time_zones)
-pprint(counts)
-pprint(len(time_zones))
+#pprint(counts)
+#pprint(len(time_zones))
 
 counts = Counter(time_zones)
-pprint(counts.most_common(10))
+#pprint(counts.most_common(10))
 
 frame = DataFrame(records)
-print(frame)
-print("=====================================")
-print(frame['tz'][:10])
+#print("=====================================")
+#print(frame['tz'][:10])
 tz_counts = frame['tz'].value_counts()
-print(tz_counts[:10])
+#print(tz_counts[:10])
 
 print("=====================================")
 clean_tz = frame['tz'].fillna('Missing')
